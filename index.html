@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StudyFlow Pro - Gestão</title>
+    <link rel="shortcut icon" type="imagex/png" href="favicom.ico">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    <link rel="shortcut icon" type="image/png" href="icon-192.png">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StudyFlow">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <style>
+        :root {
+            --bg-color: #f4f7f6; --card-bg: #ffffff; --text-color: #2c3e50;
+            --border-color: #ddd; --primary: #3498db; --success: #2ecc71;
+            --danger: #e74c3c; --accent: #8e44ad;
+        }
+        /* Ajuste para Dark Mode automático do sistema */
+        @media (prefers-color-scheme: dark) {
+            :root { --bg-color: #1a1a1a; --card-bg: #2d2d2d; --text-color: #ecf0f1; --border-color: #444; }
+        }
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a; --card-bg: #2d2d2d; --text-color: #ecf0f1; --border-color: #444;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px; 
+            transition: 0.3s;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container { 
+            width: 100%; 
+            max-width: 600px; 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            margin-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Dashboard de Metas */
+        .goal-section { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; position: relative; }
+        .goal-header { display: flex; justify-content: space-between; align-items: center; }
+        .streak-badge { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+        #goal-progress-container { background: rgba(255,255,255,0.2); height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        #goal-progress-fill { background: #fff; height: 100%; width: 0%; transition: 1s ease-out; }
+        .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10px, 1fr)); gap: 4px; margin-top: 15px; }
+        .day-pill { height: 10px; background: rgba(255,255,255,0.15); border-radius: 2px; }
+        .day-pill.paid { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        .pomodoro-box { background: var(--danger); color: white; padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 110px; }
+        #timer { font-weight: bold; font-size: 1.4rem; display: block; }
+        
+        .subject-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .active-focus { border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); transform: scale(1.02); }
+        .completed { opacity: 0.5; background: #d4edda22; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        input, select { padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-color); font-size: 1rem; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .actions { display: flex; align-items: center; gap: 15px; }
+        
+        /* Ajuste para botões touch */
+        button { touch-action: manipulation; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="goal-init" class="goal-section" style="display: none;">
+        <h4 style="margin:0 0 10px 0;">🎯 Iniciar Nova Jornada</h4>
+        <input type="text" id="goal-name-input" placeholder="Ex: Estudar Direito" style="width:100%; margin-bottom:10px;">
+        <input type="number" id="goal-days-input" placeholder="Dias de meta (Ex: 90)" style="width:100%; margin-bottom:10px;">
+        <button onclick="startGoal()" class="btn-add" style="width:100%; background:#2ecc71">Começar Agora</button>
+    </div>
+
+    <div id="goal-setup" class="goal-section" style="display: none;">
+        <div class="goal-header">
+            <h3 id="display-goal-name" style="margin:0; font-size:1.1rem;">Meta</h3>
+            <span class="streak-badge">🔥 <span id="streak-count">0</span> DIAS</span>
+        </div>
+        <div id="goal-progress-container"><div id="goal-progress-fill"></div></div>
+        <small id="goal-stats">Carregando...</small>
+        <div class="day-grid" id="day-grid"></div>
+        <button onclick="resetGoal()" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:10px; cursor:pointer; margin-top:10px;">Reiniciar Meta</button>
+    </div>
+
+    <header>
+        <div><h1 style="margin:0; font-size: 1.3rem;">StudyFlow</h1><small>Gestão de Foco</small></div>
+        <div class="pomodoro-box">
+            <span id="timer">25:00</span>
+            <button id="start-btn" style="background:white; color:var(--danger); border:none; border-radius:4px; padding:4px 10px; font-size:12px; font-weight:bold; cursor:pointer; margin-top:5px;">INICIAR</button>
+        </div>
+    </header>
+
+    <section class="input-group">
+        <select id="category-input">
+            <option value="Direito">Direito (Concurso/OAB)</option>
+            <option value="Finanças">Finanças (Livro/Podcast)</option>
+            <option value="PMERJ">PMERJ (Reserva/Procedimentos)</option>
+            <option value="Desenvolvimento">Dev (Web/Apps)</option>
+            <option value="Idiomas">Idiomas</option>
+            <option value="Geral">Geral</option>
+        </select>
+        <input type="text" id="subject-input" placeholder="O que vamos estudar?">
+        <button onclick="addSubject()" class="btn-add">Adicionar à Lista</button>
+    </section>
+
+    <main id="subject-list"></main>
+</div>
+
+<script>
+    let subjects = JSON.parse(localStorage.getItem('study_subjects')) || [];
+    let goalData = JSON.parse(localStorage.getItem('study_goal')) || null;
+    let timer = null;
+    let timeLeft = 1500;
+    let activeId = null;
+
+    window.onload = () => { renderGoal(); renderSubjects(); };
+
+    // --- SISTEMA DE METAS ---
+    function startGoal() {
+        const name = document.getElementById('goal-name-input').value;
+        const days = parseInt(document.getElementById('goal-days-input').value);
+        if(name && days) {
+            goalData = { name, totalDays: days, paidDays: [] };
+            localStorage.setItem('study_goal', JSON.stringify(goalData));
+            renderGoal();
+        }
+    }
+
+    function renderGoal() {
+        const init = document.getElementById('goal-init'), setup = document.getElementById('goal-setup');
+        if (!goalData) { init.style.display = 'block'; setup.style.display = 'none'; return; }
+        init.style.display = 'none'; setup.style.display = 'block';
+        
+        document.getElementById('display-goal-name').textContent = goalData.name;
+        const count = goalData.paidDays.length;
+        const progress = Math.round((count / goalData.totalDays) * 100);
+        document.getElementById('goal-progress-fill').style.width = progress + '%';
+        document.getElementById('goal-stats').textContent = `Foco: ${progress}% concluído (${count}/${goalData.totalDays} dias)`;
+        document.getElementById('streak-count').textContent = count;
+
+        const grid = document.getElementById('day-grid');
+        grid.innerHTML = '';
+        for(let i=0; i<goalData.totalDays; i++) {
+            const d = document.createElement('div');
+            d.className = 'day-pill' + (i < count ? ' paid' : '');
+            grid.appendChild(d);
+        }
+    }
+
+    function resetGoal() { if(confirm("Deseja apagar a meta atual?")) { goalData = null; localStorage.removeItem('study_goal'); renderGoal(); } }
+
+    // --- TAREFAS E CATEGORIAS ---
+    function addSubject() {
+        const text = document.getElementById('subject-input').value;
+        const category = document.getElementById('category-input').value;
+        if(text) {
+            subjects.push({ id: Date.now(), text, category, completed: false });
+            document.getElementById('subject-input').value = '';
+            save();
+        }
+    }
+
+    function renderSubjects() {
+        const list = document.getElementById('subject-list');
+        list.innerHTML = '';
+        subjects.forEach(s => {
+            let searchUrl = `https://www.google.com/search?q=${encodeURIComponent(s.text)}`;
+            if(s.category === 'Direito') searchUrl += "+site:planalto.gov.br";
+            if(s.category === 'PMERJ') searchUrl += "+PMERJ+boletim+instrução";
+            if(s.category === 'Finanças') searchUrl += "+mercado+financeiro+investimentos";
+
+            list.innerHTML += `
+                <div class="subject-card ${s.completed ? 'completed' : ''} ${activeId === s.id ? 'active-focus' : ''}">
+                    <div style="flex:1">
+                        <small style="color:var(--primary); font-weight:bold; font-size:10px;">${s.category.toUpperCase()}</small><br>
+                        <strong>${s.text}</strong>
+                    </div>
+                    <div class="actions">
+                        <a href="${searchUrl}" target="_blank" title="Pesquisar" style="text-decoration:none; font-size:1.1rem;">🔍</a>
+                        <button onclick="setFocus(${s.id})" title="Focar nesta tarefa" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">🎯</button>
+                        <button onclick="deleteTask(${s.id})" style="border:none; background:none; cursor:pointer; color:var(--danger);">✕</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function setFocus(id) { activeId = id; renderSubjects(); }
+    function deleteTask(id) { subjects = subjects.filter(s => s.id !== id); save(); }
+    function save() { localStorage.setItem('study_subjects', JSON.stringify(subjects)); renderSubjects(); }
+
+    // --- POMODORO ---
+    document.getElementById('start-btn').onclick = function() {
+        if(timer) { clearInterval(timer); timer = null; this.textContent = "RETOMAR"; }
+        else {
+            if(!activeId) return alert("Selecione o 🎯 de uma tarefa antes de iniciar o cronômetro!");
+            this.textContent = "PAUSAR";
+            timer = setInterval(() => {
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    autoCompleteDay();
+                } else { timeLeft--; updateTimerUI(); }
+            }, 1000);
+        }
+    };
+
+    function autoCompleteDay() {
+        const sub = subjects.find(s => s.id === activeId);
+        if(sub) sub.completed = true;
+        
+        if (goalData && sub) {
+            const metaNome = goalData.name.toLowerCase();
+            const categoria = sub.category.toLowerCase();
+            const hoje = new Date().toLocaleDateString();
+
+            if (metaNome.includes(categoria) || categoria.includes(metaNome)) {
+                if (!goalData.paidDays.includes(hoje)) {
+                    goalData.paidDays.push(hoje);
+                    localStorage.setItem('study_goal', JSON.stringify(goalData));
+                    renderGoal();
+                }
+            }
+        }
+
+        try {
+            new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg').play();
+        } catch(e) { console.log('Áudio não permitido sem interação'); }
+        
+        alert(`Ciclo finalizado! Tarefa concluída.`);
+        timeLeft = 1500; updateTimerUI(); save();
+    }
+
+    function updateTimerUI() {
+        const m = Math.floor(timeLeft/60), s = timeLeft%60;
+        document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
+    }
+
+    // --- REGISTRO PWA ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW registrado!', reg))
+                .catch(err => console.log('Erro no SW:', err));
+        });
+    }
+</script>
+</body>
+</html>
