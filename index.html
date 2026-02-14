@@ -96,7 +96,12 @@
         <div id="goal-progress-container"><div id="goal-progress-fill"></div></div>
         <small id="goal-stats">Carregando...</small>
         <div class="day-grid" id="day-grid"></div>
-        <button onclick="resetGoal()" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:10px; cursor:pointer; margin-top:10px;">Reiniciar Meta</button>
+        
+        <button onclick="manualDayComplete()" class="btn-add" style="width:100%; margin-top:15px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4);">
+            ✅ Marcar Dia Concluído
+        </button>
+
+        <button onclick="resetGoal()" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:10px; cursor:pointer; margin-top:10px; width:100%">Reiniciar Meta</button>
     </div>
 
     <header>
@@ -166,6 +171,27 @@
 
     function resetGoal() { if(confirm("Deseja apagar a meta atual?")) { goalData = null; localStorage.removeItem('study_goal'); renderGoal(); } }
 
+    // Função de registro manual
+    function manualDayComplete() {
+        if (!goalData) return;
+
+        const hoje = new Date().toLocaleDateString();
+        
+        // Se já tiver marcado hoje, pede confirmação para adicionar extra
+        if (goalData.paidDays.includes(hoje)) {
+            if (!confirm("O dia de hoje já foi contabilizado! Deseja adicionar mais um ponto extra?")) {
+                return;
+            }
+        }
+
+        goalData.paidDays.push(hoje);
+        localStorage.setItem('study_goal', JSON.stringify(goalData));
+        renderGoal();
+        
+        // Feedback visual simples
+        alert("Dia registrado com sucesso! 🚀");
+    }
+
     // --- TAREFAS E CATEGORIAS ---
     function addSubject() {
         const text = document.getElementById('subject-input').value;
@@ -229,6 +255,7 @@
             const categoria = sub.category.toLowerCase();
             const hoje = new Date().toLocaleDateString();
 
+            // Lógica automática: só marca se a categoria bater com a meta
             if (metaNome.includes(categoria) || categoria.includes(metaNome)) {
                 if (!goalData.paidDays.includes(hoje)) {
                     goalData.paidDays.push(hoje);
