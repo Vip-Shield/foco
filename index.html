@@ -57,11 +57,26 @@
         .streak-badge { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
         #goal-progress-container { background: rgba(255,255,255,0.2); height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
         #goal-progress-fill { background: #fff; height: 100%; width: 0%; transition: 1s ease-out; }
-        .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10px, 1fr)); gap: 4px; margin-top: 15px; }
+        
+        /* Área Recolhível */
+        .goal-summary { cursor: pointer; transition: 0.2s; padding-bottom: 5px; }
+        .goal-summary:active { opacity: 0.8; }
+        #goal-details { margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.3); display: none; }
+
+        .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10px, 1fr)); gap: 4px; }
         .day-pill { height: 10px; background: rgba(255,255,255,0.15); border-radius: 2px; }
         .day-pill.paid { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
 
+        /* Pomodoro da Meta */
+        .goal-pomodoro-box { background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.3); }
+        .goal-time-controls { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 10px; }
+        .time-btn { background: rgba(0,0,0,0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #goal-timer-display { font-size: 2.5rem; font-weight: bold; font-family: monospace; }
+
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        
+        /* Controles do Header (Botões e Pomodoro) */
+        .header-controls { display: flex; align-items: center; gap: 12px; }
         .pomodoro-box { background: var(--danger); color: white; padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 110px; }
         #timer { font-weight: bold; font-size: 1.4rem; display: block; }
         
@@ -74,7 +89,10 @@
         .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
         .actions { display: flex; align-items: center; gap: 15px; }
         
-        /* Ajuste para botões touch */
+        /* Modal do Autor */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .modal-content { background-color: var(--card-bg); margin: 10% auto; padding: 30px; border-radius: 15px; width: 85%; max-width: 400px; color: var(--text-color); position: relative; text-align: center; }
+
         button { touch-action: manipulation; }
     </style>
 </head>
@@ -89,26 +107,49 @@
     </div>
 
     <div id="goal-setup" class="goal-section" style="display: none;">
-        <div class="goal-header">
-            <h3 id="display-goal-name" style="margin:0; font-size:1.1rem;">Meta</h3>
-            <span class="streak-badge">🔥 <span id="streak-count">0</span> DIAS</span>
-        </div>
-        <div id="goal-progress-container"><div id="goal-progress-fill"></div></div>
-        <small id="goal-stats">Carregando...</small>
-        <div class="day-grid" id="day-grid"></div>
         
-        <button onclick="manualDayComplete()" class="btn-add" style="width:100%; margin-top:15px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4);">
-            ✅ Marcar Dia Concluído
-        </button>
+        <div class="goal-summary" onclick="toggleGoalDetails()" title="Clique para expandir/recolher">
+            <div class="goal-header">
+                <h3 id="display-goal-name" style="margin:0; font-size:1.1rem;">Meta</h3>
+                <span class="streak-badge">🔥 <span id="streak-count">0</span> DIAS</span>
+            </div>
+            <div id="goal-progress-container"><div id="goal-progress-fill"></div></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <small id="goal-stats">Carregando...</small>
+                <span id="goal-toggle-icon" style="font-size: 11px; font-weight: bold; opacity: 0.8; background: rgba(0,0,0,0.15); padding: 4px 8px; border-radius: 10px;">▼ ABRIR</span>
+            </div>
+        </div>
 
-        <button onclick="resetGoal()" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:10px; cursor:pointer; margin-top:10px; width:100%">Reiniciar Meta</button>
+        <div id="goal-details">
+            <div class="day-grid" id="day-grid"></div>
+            
+            <div class="goal-pomodoro-box">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: rgba(255,255,255,0.9);">⏱️ Foco na Meta</h4>
+                <div class="goal-time-controls">
+                    <button class="time-btn" onclick="adjustGoalTime(-5)" title="Menos 5 minutos">-</button>
+                    <span id="goal-timer-display">25:00</span>
+                    <button class="time-btn" onclick="adjustGoalTime(5)" title="Mais 5 minutos">+</button>
+                </div>
+                <button id="goal-start-btn" onclick="toggleGoalTimer()" style="background: white; color: #2575fc; border: none; padding: 10px 25px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%;">INICIAR FOCO</button>
+            </div>
+
+            <button onclick="manualDayComplete()" class="btn-add" style="width:100%; margin-top:15px; background:rgba(255,255,255,0.1); border:1px dashed rgba(255,255,255,0.4);">
+                ✅ Marcar Dia Manualmente
+            </button>
+
+            <button onclick="resetGoal()" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:10px; cursor:pointer; margin-top:10px; width:100%">Reiniciar Meta</button>
+        </div>
     </div>
 
     <header>
         <div><h1 style="margin:0; font-size: 1.3rem;">StudyFlow</h1><small>Gestão de Foco</small></div>
-        <div class="pomodoro-box">
-            <span id="timer">25:00</span>
-            <button id="start-btn" style="background:white; color:var(--danger); border:none; border-radius:4px; padding:4px 10px; font-size:12px; font-weight:bold; cursor:pointer; margin-top:5px;">INICIAR</button>
+        <div class="header-controls">
+            <button onclick="toggleAuthorModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Sobre o Autor">👨‍💻</button>
+            <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" id="theme-icon" title="Alternar Tema">🌙</button>
+            <div class="pomodoro-box">
+                <span id="timer">25:00</span>
+                <button id="start-btn" style="background:white; color:var(--danger); border:none; border-radius:4px; padding:4px 10px; font-size:12px; font-weight:bold; cursor:pointer; margin-top:5px;">INICIAR</button>
+            </div>
         </div>
     </header>
 
@@ -128,14 +169,65 @@
     <main id="subject-list"></main>
 </div>
 
+<div id="author-modal" class="modal">
+    <div class="modal-content">
+        <span onclick="toggleAuthorModal()" style="position:absolute; right:20px; top:10px; font-size:28px; cursor:pointer;">&times;</span>
+        <div style="width:80px; height:80px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px; font-size:2rem; font-weight:bold;">RC</div>
+        <h2>Rodrigo Cunha</h2>
+        <p style="font-size:14px; color:#7f8c8d;">Acadêmico Independente | Escritor | Podcaster</p>
+        <p style="font-size:14px; line-height:1.5;">Autor de "Construindo a sua Vida Financeira" e Host do PodFamily - PodCunha.</p>
+    </div>
+</div>
+
 <script>
     let subjects = JSON.parse(localStorage.getItem('study_subjects')) || [];
     let goalData = JSON.parse(localStorage.getItem('study_goal')) || null;
+    
+    // Variáveis Pomodoro Principal (Header)
     let timer = null;
     let timeLeft = 1500;
     let activeId = null;
 
-    window.onload = () => { renderGoal(); renderSubjects(); };
+    // Variáveis Pomodoro da Meta (Independente)
+    let goalTimerInterval = null;
+    let goalTimeLeft = 1500; // Começa com 25 minutos
+    let isGoalExpanded = false; // Controle de expansão da Meta
+
+    window.onload = () => { 
+        renderGoal(); 
+        renderSubjects(); 
+        updateGoalTimerUI();
+        
+        // Inicializa o tema salvo
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    };
+
+    // --- FUNÇÕES DO HEADER E UI ---
+    function toggleAuthorModal() { 
+        const m = document.getElementById('author-modal'); 
+        m.style.display = m.style.display === 'block' ? 'none' : 'block'; 
+    }
+
+    function toggleTheme() {
+        const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+        localStorage.setItem('theme', t);
+    }
+
+    function toggleGoalDetails() {
+        isGoalExpanded = !isGoalExpanded;
+        const details = document.getElementById('goal-details');
+        const icon = document.getElementById('goal-toggle-icon');
+        
+        if (isGoalExpanded) {
+            details.style.display = 'block';
+            icon.textContent = '▲ FECHAR';
+        } else {
+            details.style.display = 'none';
+            icon.textContent = '▼ ABRIR';
+        }
+    }
 
     // --- SISTEMA DE METAS ---
     function startGoal() {
@@ -144,7 +236,10 @@
         if(name && days) {
             goalData = { name, totalDays: days, paidDays: [] };
             localStorage.setItem('study_goal', JSON.stringify(goalData));
+            isGoalExpanded = true; // Abre ao criar
             renderGoal();
+            document.getElementById('goal-details').style.display = 'block';
+            document.getElementById('goal-toggle-icon').textContent = '▲ FECHAR';
         }
     }
 
@@ -171,25 +266,78 @@
 
     function resetGoal() { if(confirm("Deseja apagar a meta atual?")) { goalData = null; localStorage.removeItem('study_goal'); renderGoal(); } }
 
-    // Função de registro manual
     function manualDayComplete() {
         if (!goalData) return;
-
         const hoje = new Date().toLocaleDateString();
-        
-        // Se já tiver marcado hoje, pede confirmação para adicionar extra
         if (goalData.paidDays.includes(hoje)) {
-            if (!confirm("O dia de hoje já foi contabilizado! Deseja adicionar mais um ponto extra?")) {
-                return;
-            }
+            if (!confirm("O dia de hoje já foi contabilizado! Deseja adicionar mais um ponto extra?")) return;
         }
-
         goalData.paidDays.push(hoje);
         localStorage.setItem('study_goal', JSON.stringify(goalData));
         renderGoal();
-        
-        // Feedback visual simples
         alert("Dia registrado com sucesso! 🚀");
+    }
+
+    // --- POMODORO INDEPENDENTE DA META ---
+    function adjustGoalTime(minutes) {
+        if (goalTimerInterval) return;
+        goalTimeLeft += minutes * 60;
+        if (goalTimeLeft < 60) goalTimeLeft = 60;
+        updateGoalTimerUI();
+    }
+
+    function updateGoalTimerUI() {
+        const m = Math.floor(goalTimeLeft / 60);
+        const s = goalTimeLeft % 60;
+        document.getElementById('goal-timer-display').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function toggleGoalTimer() {
+        const btn = document.getElementById('goal-start-btn');
+        if (goalTimerInterval) {
+            clearInterval(goalTimerInterval);
+            goalTimerInterval = null;
+            btn.textContent = "RETOMAR";
+            btn.style.background = "white";
+            btn.style.color = "#2575fc";
+        } else {
+            btn.textContent = "PAUSAR";
+            btn.style.background = "#e74c3c";
+            btn.style.color = "white";
+            
+            goalTimerInterval = setInterval(() => {
+                if (goalTimeLeft <= 0) {
+                    clearInterval(goalTimerInterval);
+                    goalTimerInterval = null;
+                    completeGoalPomodoro();
+                } else {
+                    goalTimeLeft--;
+                    updateGoalTimerUI();
+                }
+            }, 1000);
+        }
+    }
+
+    function completeGoalPomodoro() {
+        try { new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg').play(); } catch(e) {}
+        
+        alert(`Parabéns! Foco da meta finalizado. Seu dia foi contabilizado automaticamente! 🚀`);
+        
+        if (goalData) {
+            const hoje = new Date().toLocaleDateString();
+            if (!goalData.paidDays.includes(hoje)) {
+                goalData.paidDays.push(hoje);
+                localStorage.setItem('study_goal', JSON.stringify(goalData));
+                renderGoal();
+            }
+        }
+
+        goalTimeLeft = 1500;
+        updateGoalTimerUI();
+        const btn = document.getElementById('goal-start-btn');
+        btn.textContent = "INICIAR FOCO";
+        btn.style.background = "white";
+        btn.style.color = "#2575fc";
     }
 
     // --- TAREFAS E CATEGORIAS ---
@@ -231,7 +379,7 @@
     function deleteTask(id) { subjects = subjects.filter(s => s.id !== id); save(); }
     function save() { localStorage.setItem('study_subjects', JSON.stringify(subjects)); renderSubjects(); }
 
-    // --- POMODORO ---
+    // --- POMODORO PRINCIPAL (HEADER) ---
     document.getElementById('start-btn').onclick = function() {
         if(timer) { clearInterval(timer); timer = null; this.textContent = "RETOMAR"; }
         else {
@@ -240,40 +388,21 @@
             timer = setInterval(() => {
                 if(timeLeft <= 0) {
                     clearInterval(timer);
-                    autoCompleteDay();
-                } else { timeLeft--; updateTimerUI(); }
+                    autoCompleteTask();
+                } else { timeLeft--; updateHeaderTimerUI(); }
             }, 1000);
         }
     };
 
-    function autoCompleteDay() {
+    function autoCompleteTask() {
         const sub = subjects.find(s => s.id === activeId);
         if(sub) sub.completed = true;
-        
-        if (goalData && sub) {
-            const metaNome = goalData.name.toLowerCase();
-            const categoria = sub.category.toLowerCase();
-            const hoje = new Date().toLocaleDateString();
-
-            // Lógica automática: só marca se a categoria bater com a meta
-            if (metaNome.includes(categoria) || categoria.includes(metaNome)) {
-                if (!goalData.paidDays.includes(hoje)) {
-                    goalData.paidDays.push(hoje);
-                    localStorage.setItem('study_goal', JSON.stringify(goalData));
-                    renderGoal();
-                }
-            }
-        }
-
-        try {
-            new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg').play();
-        } catch(e) { console.log('Áudio não permitido sem interação'); }
-        
+        try { new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg').play(); } catch(e) {}
         alert(`Ciclo finalizado! Tarefa concluída.`);
-        timeLeft = 1500; updateTimerUI(); save();
+        timeLeft = 1500; updateHeaderTimerUI(); save();
     }
 
-    function updateTimerUI() {
+    function updateHeaderTimerUI() {
         const m = Math.floor(timeLeft/60), s = timeLeft%60;
         document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
     }
