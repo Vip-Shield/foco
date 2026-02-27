@@ -1,0 +1,97 @@
+:root {
+    --bg-color: #f4f7f6;
+    --card-bg: #ffffff;
+    --text-color: #2c3e50;
+    --border-color: #ddd;
+    --primary: #3498db;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+}
+
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --card-bg: #2d2d2d;
+    --text-color: #ecf0f1;
+    --border-color: #444;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    transition: 0.3s;
+}
+
+.container {
+    width: 100%;
+    max-width: 550px;
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 1rem;
+
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pomodoro-box {
+    background: var(--danger);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+#timer { font-weight: bold; font-size: 1.2rem; display: block; }
+
+.progress-bar-bg {
+    width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden;
+}
+
+#progress-bar-fill {
+    height: 100%; background: var(--success); width: 0%; transition: 0.5s;
+}
+
+.input-section { display: flex; gap: 5px; margin-top: 20px; }
+
+input, select {
+    padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;
+    background: var(--card-bg); color: var(--text-color);
+}
+
+.subject-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.completed { opacity: 0.6; background: #d4edda22; }
+.completed span { text-decoration: line-through; }
+
+button { cursor: pointer; border: none; border-radius: 5px; padding: 8px 12px; transition: 0.2s; }
+button:hover { opacity: 0.8; }
+
+.filters { margin: 15px 0; display: flex; gap: 5px; overflow-x: auto; }
+.report-container { margin-top: 30px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
