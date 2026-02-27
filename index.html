@@ -31,21 +31,20 @@
 
         body { 
             font-family: 'Segoe UI', Roboto, sans-serif; 
-            /* Removido o background-color daqui, pois agora usamos os pseudo-elementos abaixo */
             color: var(--text-color); 
             display: flex; 
             justify-content: center; 
             padding: 20px; 
             min-height: 100vh;
             margin: 0;
-            position: relative; /* Necessário para o fundo desfocado funcionar */
+            position: relative; 
         }
 
         /* --- IMAGEM DE FUNDO DA BIBLIOTECA DESFOCADA --- */
         body::before {
             content: "";
             position: fixed;
-            top: -5%; left: -5%; width: 110%; height: 110%; /* Evita margens brancas pelo desfoque */
+            top: -5%; left: -5%; width: 110%; height: 110%; 
             background: url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1080&auto=format&fit=crop') no-repeat center center;
             background-size: cover;
             filter: blur(10px);
@@ -58,9 +57,9 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-color);
-            opacity: 0.52; /* Mistura 82% da cor do tema com 18% da imagem da biblioteca */
+            opacity: 0.42; 
             z-index: -1;
-            transition: background-color 0.3s; /* Transição suave ao mudar o tema */
+            transition: background-color 0.3s; 
         }
 
         .container { 
@@ -69,9 +68,9 @@
             background: var(--card-bg); 
             padding: 25px; 
             border-radius: 15px; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2); /* Sombra um pouco mais forte para destacar do fundo */
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
             margin-bottom: env(safe-area-inset-bottom);
-            position: relative; /* Mantém o container acima do fundo */
+            position: relative; 
             z-index: 1;
         }
         
@@ -94,7 +93,6 @@
         .time-btn { background: rgba(0,0,0,0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #goal-timer-display { font-size: 2.5rem; font-weight: bold; font-family: monospace; }
 
-        /* HEADER E CONTROLES AJUSTADOS PARA RESPONSIVIDADE */
         header { 
             display: flex; 
             justify-content: space-between; 
@@ -140,7 +138,6 @@
 
         button { touch-action: manipulation; }
 
-        /* AJUSTE ESPECÍFICO PARA CELULARES */
         @media (max-width: 480px) {
             header {
                 flex-direction: column;
@@ -261,7 +258,17 @@
     let goalTimeLeft = 1500; 
     let isGoalExpanded = false; 
 
-    // --- FUNÇÃO DE CONFETES (ANIMATION) ---
+    // Frases Motivacionais para a meta semanal
+    const frasesMotivacionais = [
+        "A disciplina é a ponte entre metas e realizações.",
+        "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+        "A persistência realiza o impossível.",
+        "Pequenos passos todos os dias levam a grandes conquistas.",
+        "Não espere o momento perfeito, faça do momento de hoje o perfeito.",
+        "O único lugar onde o sucesso vem antes do trabalho é no dicionário.",
+        "A constância é a base de todas as virtudes e o alicerce do sucesso."
+    ];
+
     function shootConfetti() {
         for(let i = 0; i < 50; i++) {
             let conf = document.createElement('div');
@@ -296,7 +303,6 @@
         }
     }
 
-    // --- FUNÇÃO AUXILIAR: NÚMEROS ROMANOS ---
     function toRoman(num) {
         if (num === 0) return '';
         const rules = {M:1000, CM:900, D:500, CD:400, C:100, XC:90, L:50, XL:40, X:10, IX:9, V:5, IV:4, I:1};
@@ -319,7 +325,6 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
     };
 
-    // --- FUNÇÕES DE MODAIS E TEMA ---
     function toggleAuthorModal() { 
         const m = document.getElementById('author-modal'); 
         m.style.display = m.style.display === 'block' ? 'none' : 'block'; 
@@ -350,7 +355,6 @@
         }
     }
 
-    // --- BACKUP: IMPORTAR E EXPORTAR ---
     function exportData() {
         const data = {
             study_subjects: subjects,
@@ -386,7 +390,6 @@
         reader.readAsText(file);
     }
 
-    // --- SISTEMA DE METAS ---
     function startGoal() {
         const name = document.getElementById('goal-name-input').value;
         const days = parseInt(document.getElementById('goal-days-input').value);
@@ -453,10 +456,15 @@
 
     function checkAndFireConfetti(newCount) {
         if (newCount > 0 && newCount % 7 === 0) {
-            // Toca um áudio especial de celebração ao atingir 7 dias
             try { new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg').play(); } catch(e) {}
             shootConfetti();
-            setTimeout(() => alert("🎉 Você completou mais um ciclo de 7 dias! O número Romano subiu de nível!"), 500);
+            
+            // Sorteia uma frase aleatória
+            const fraseSorteada = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
+            
+            setTimeout(() => {
+                alert(`🎉 Você completou mais um ciclo de 7 dias! O número Romano subiu de nível!\n\n💡 "${fraseSorteada}"`);
+            }, 500);
         } else {
             alert("Dia registrado com sucesso! 🚀");
         }
@@ -476,7 +484,6 @@
         checkAndFireConfetti(goalData.paidDays.length);
     }
 
-    // --- POMODORO INDEPENDENTE DA META ---
     function adjustGoalTime(minutes) {
         if (goalTimerInterval) return;
         goalTimeLeft += minutes * 60;
@@ -517,7 +524,6 @@
     }
 
     function completeGoalPomodoro() {
-        // Toca o áudio normal de final de pomodoro
         try { new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg').play(); } catch(e) {}
         
         let pointAdded = false;
@@ -545,7 +551,6 @@
         }
     }
 
-    // --- TAREFAS E CATEGORIAS ---
     function addSubject() {
         const text = document.getElementById('subject-input').value;
         const category = document.getElementById('category-input').value;
@@ -584,7 +589,6 @@
     function deleteTask(id) { subjects = subjects.filter(s => s.id !== id); save(); }
     function save() { localStorage.setItem('study_subjects', JSON.stringify(subjects)); renderSubjects(); }
 
-    // --- POMODORO PRINCIPAL (HEADER) ---
     document.getElementById('start-btn').onclick = function() {
         if(timer) { clearInterval(timer); timer = null; this.textContent = "RETOMAR"; }
         else {
@@ -612,7 +616,6 @@
         document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
     }
 
-    // --- REGISTRO PWA ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
