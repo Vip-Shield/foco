@@ -57,7 +57,7 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-color);
-            opacity: 0.42; 
+            opacity: 0.20; 
             z-index: -1;
             transition: background-color 0.3s; 
         }
@@ -125,8 +125,12 @@
         
         .subject-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
         .active-focus { border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); transform: scale(1.02); }
-        .completed { opacity: 0.5; background: #d4edda22; }
         
+        /* NOVO ESTILO DE CONCLUÍDO COM DESFOQUE E BADGE */
+        .completed { opacity: 0.6; background: #d4edda22; filter: grayscale(100%) blur(1.5px); transition: 0.3s; }
+        .completed:hover { filter: grayscale(0%) blur(0px); opacity: 1; }
+        .session-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 10px; }
+
         .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
         input, select { padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-color); font-size: 1rem; }
         .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
@@ -217,6 +221,7 @@
             <option value="Geral">Geral</option>
         </select>
         <input type="text" id="subject-input" placeholder="O que vamos estudar?">
+        <input type="number" id="sessions-input" placeholder="Qtd. de sessões (Ex: 2)" min="1" value="1">
         <button onclick="addSubject()" class="btn-add">Adicionar à Lista</button>
     </section>
 
@@ -258,17 +263,6 @@
     let goalTimeLeft = 1500; 
     let isGoalExpanded = false; 
 
-    // Frases Motivacionais para a meta semanal
-    const frasesMotivacionais = [
-        "A disciplina é a ponte entre metas e realizações.",
-        "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
-        "A persistência realiza o impossível.",
-        "Pequenos passos todos os dias levam a grandes conquistas.",
-        "Não espere o momento perfeito, faça do momento de hoje o perfeito.",
-        "O único lugar onde o sucesso vem antes do trabalho é no dicionário.",
-        "A constância é a base de todas as virtudes e o alicerce do sucesso."
-    ];
-
     function shootConfetti() {
         for(let i = 0; i < 50; i++) {
             let conf = document.createElement('div');
@@ -290,7 +284,7 @@
             let anim = setInterval(() => {
                 let top = parseFloat(conf.style.top);
                 let left = parseFloat(conf.style.left);
-                fallSpeed += 0.15; // Gravidade
+                fallSpeed += 0.15; 
                 conf.style.top = (top + fallSpeed) + 'px';
                 conf.style.left = (left + Math.cos(angle) * velocity) + 'px';
                 conf.style.transform = `rotate(${top * 2}deg)`;
@@ -458,13 +452,7 @@
         if (newCount > 0 && newCount % 7 === 0) {
             try { new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg').play(); } catch(e) {}
             shootConfetti();
-            
-            // Sorteia uma frase aleatória
-            const fraseSorteada = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
-            
-            setTimeout(() => {
-                alert(`🎉 Você completou mais um ciclo de 7 dias! O número Romano subiu de nível!\n\n💡 "${fraseSorteada}"`);
-            }, 500);
+            setTimeout(() => alert("🎉 Você completou mais um ciclo de 7 dias! O número Romano subiu de nível!"), 500);
         } else {
             alert("Dia registrado com sucesso! 🚀");
         }
@@ -554,9 +542,19 @@
     function addSubject() {
         const text = document.getElementById('subject-input').value;
         const category = document.getElementById('category-input').value;
+        const sessions = parseInt(document.getElementById('sessions-input').value) || 1;
+        
         if(text) {
-            subjects.push({ id: Date.now(), text, category, completed: false });
+            subjects.push({ 
+                id: Date.now(), 
+                text, 
+                category, 
+                completed: false, 
+                totalSessions: sessions, 
+                sessionsLeft: sessions 
+            });
             document.getElementById('subject-input').value = '';
+            document.getElementById('sessions-input').value = '1';
             save();
         }
     }
@@ -565,24 +563,44 @@
         const list = document.getElementById('subject-list');
         list.innerHTML = '';
         subjects.forEach(s => {
+            if (s.sessionsLeft === undefined) { s.sessionsLeft = 1; s.totalSessions = 1; }
+
             let searchUrl = `https://www.google.com/search?q=${encodeURIComponent(s.text)}`;
             if(s.category === 'Direito') searchUrl += "+site:planalto.gov.br";
             if(s.category === 'PMERJ') searchUrl += "+PMERJ+boletim+instrução";
             if(s.category === 'Finanças') searchUrl += "+mercado+financeiro+investimentos";
 
+            // Calcula quantas sessões já foram concluídas
+            const sessoesFeitas = s.totalSessions - s.sessionsLeft;
+
             list.innerHTML += `
                 <div class="subject-card ${s.completed ? 'completed' : ''} ${activeId === s.id ? 'active-focus' : ''}">
                     <div style="flex:1">
-                        <small style="color:var(--primary); font-weight:bold; font-size:10px;">${s.category.toUpperCase()}</small><br>
+                        <small style="color:var(--primary); font-weight:bold; font-size:10px;">${s.category.toUpperCase()}</small>
+                        ${!s.completed ? `<span class="session-badge">Feitas: ${sessoesFeitas}/${s.totalSessions}</span>` : `<span class="session-badge" style="background:var(--success)">Concluído</span>`}
+                        <br>
                         <strong>${s.text}</strong>
                     </div>
                     <div class="actions">
                         <a href="${searchUrl}" target="_blank" title="Pesquisar" style="text-decoration:none; font-size:1.1rem;">🔍</a>
+                        <button onclick="decrementSession(${s.id})" title="Marcar 1 sessão como lida" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">✅</button>
                         <button onclick="setFocus(${s.id})" title="Focar nesta tarefa" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">🎯</button>
                         <button onclick="deleteTask(${s.id})" style="border:none; background:none; cursor:pointer; color:var(--danger);">✕</button>
                     </div>
                 </div>`;
         });
+    }
+
+    function decrementSession(id) {
+        const sub = subjects.find(s => s.id === id);
+        if (sub && !sub.completed) {
+            sub.sessionsLeft--;
+            if (sub.sessionsLeft <= 0) {
+                sub.completed = true;
+                try { new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg').play(); } catch(e) {}
+            }
+            save();
+        }
     }
 
     function setFocus(id) { activeId = id; renderSubjects(); }
@@ -605,9 +623,19 @@
 
     function autoCompleteTask() {
         const sub = subjects.find(s => s.id === activeId);
-        if(sub) sub.completed = true;
+        if(sub && !sub.completed) {
+            sub.sessionsLeft--;
+            if(sub.sessionsLeft <= 0) {
+                sub.completed = true;
+                alert(`Meta finalizada! Todas as sessões desta tarefa foram concluídas.`);
+            } else {
+                const sessoesFeitas = sub.totalSessions - sub.sessionsLeft;
+                alert(`Ciclo finalizado! Você completou ${sessoesFeitas} de ${sub.totalSessions} sessões neste assunto.`);
+            }
+        } else {
+            alert(`Ciclo de foco finalizado!`);
+        }
         try { new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg').play(); } catch(e) {}
-        alert(`Ciclo finalizado! Tarefa concluída.`);
         timeLeft = 1500; updateHeaderTimerUI(); save();
     }
 
