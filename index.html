@@ -563,7 +563,6 @@
         const list = document.getElementById('subject-list');
         list.innerHTML = '';
         
-        // --- AQUI ESTÁ A MUDANÇA: slice().reverse() INVERTE A ORDEM PARA EXIBIÇÃO ---
         subjects.slice().reverse().forEach(s => {
             if (s.sessionsLeft === undefined) { s.sessionsLeft = 1; s.totalSessions = 1; }
 
@@ -575,11 +574,14 @@
             // Calcula quantas sessões já foram concluídas
             const sessoesFeitas = s.totalSessions - s.sessionsLeft;
 
+            // --- AQUI ESTÁ A MUDANÇA: ADICIONAMOS A INFORMAÇÃO DOS DIAS NO BADGE DE CONCLUÍDO ---
             list.innerHTML += `
                 <div class="subject-card ${s.completed ? 'completed' : ''} ${activeId === s.id ? 'active-focus' : ''}">
                     <div style="flex:1">
                         <small style="color:var(--primary); font-weight:bold; font-size:10px;">${s.category.toUpperCase()}</small>
-                        ${!s.completed ? `<span class="session-badge">Feitas: ${sessoesFeitas}/${s.totalSessions}</span>` : `<span class="session-badge" style="background:var(--success)">Concluído</span>`}
+                        ${!s.completed 
+                            ? `<span class="session-badge">Feitas: ${sessoesFeitas}/${s.totalSessions}</span>` 
+                            : `<span class="session-badge" style="background:var(--success)">Concluído (${sessoesFeitas}/${s.totalSessions})</span>`}
                         <br>
                         <strong>${s.text}</strong>
                     </div>
