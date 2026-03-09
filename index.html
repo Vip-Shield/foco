@@ -562,7 +562,9 @@
     function renderSubjects() {
         const list = document.getElementById('subject-list');
         list.innerHTML = '';
-        subjects.forEach(s => {
+        
+        // --- AQUI ESTÁ A MUDANÇA: slice().reverse() INVERTE A ORDEM PARA EXIBIÇÃO ---
+        subjects.slice().reverse().forEach(s => {
             if (s.sessionsLeft === undefined) { s.sessionsLeft = 1; s.totalSessions = 1; }
 
             let searchUrl = `https://www.google.com/search?q=${encodeURIComponent(s.text)}`;
