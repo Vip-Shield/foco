@@ -126,13 +126,13 @@
         .subject-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
         .active-focus { border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); transform: scale(1.02); }
         
-        /* ESTILO DE CONCLUÍDO ATUALIZADO (Sem grayscale para mostrar as cores) */
         .completed { opacity: 0.6; filter: blur(1.5px); transition: 0.3s; }
         .completed:hover { filter: blur(0px); opacity: 1; }
         
-        /* NOVAS CLASSES DE PRAZO */
+        /* ESTILOS DE PRAZO */
         .completed-on-time { border-left: 6px solid var(--success); background-color: rgba(46, 204, 113, 0.05); }
         .completed-late { border-left: 6px solid var(--danger); background-color: rgba(231, 76, 60, 0.05); }
+        .active-late { border-left: 6px solid var(--danger); background-color: rgba(231, 76, 60, 0.08); }
 
         .session-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 10px; }
 
@@ -553,7 +553,6 @@
         const sessions = parseInt(document.getElementById('sessions-input').value) || 1;
         let deadline = document.getElementById('deadline-input').value;
         
-        // Se o usuário não colocar data, define como "hoje + qtd de sessões"
         if (!deadline && sessions > 0) {
             let dataCalculada = new Date();
             dataCalculada.setDate(dataCalculada.getDate() + sessions);
@@ -582,6 +581,10 @@
         const list = document.getElementById('subject-list');
         list.innerHTML = '';
         
+        // Obter data de hoje no formato YYYY-MM-DD com compensação de fuso para não dar erro
+        const dt = new Date();
+        const todayISO = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+
         subjects.slice().reverse().forEach(s => {
             if (s.sessionsLeft === undefined) { s.sessionsLeft = 1; s.totalSessions = 1; }
 
@@ -592,23 +595,27 @@
 
             const sessoesFeitas = s.totalSessions - s.sessionsLeft;
             
-            // Formata e exibe o prazo na interface
             let prazoHtml = '';
+            let statusClass = '';
+
+            // Lógica de verificação de prazo
             if (s.deadline) {
                 const p = s.deadline.split('-');
-                prazoHtml = `<span style="font-size: 11px; margin-left: 8px; color: #7f8c8d;">📅 Até: ${p[2]}/${p[1]}/${p[0]}</span>`;
-            }
-
-            // Define se atrasou ou cumpriu o prazo ao concluir
-            let statusClass = '';
-            if (s.completed) {
-                let isLate = false;
-                if (s.deadline && s.completedAt) {
-                    isLate = new Date(s.completedAt) > new Date(s.deadline + "T23:59:59");
-                } else if (s.deadline) {
-                    isLate = new Date() > new Date(s.deadline + "T23:59:59"); // fallback para tarefas antigas
+                let warningText = '';
+                
+                if (s.completed) {
+                    // Verificação para tarefas já concluídas (Se concluiu depois da data)
+                    const compDate = s.completedAt || todayISO;
+                    statusClass = (compDate > s.deadline) ? 'completed-late' : 'completed-on-time';
+                } else {
+                    // Verificação para tarefas AINDA EM ABERTO (Se hoje é maior que a data limite)
+                    if (todayISO > s.deadline) {
+                        statusClass = 'active-late';
+                        warningText = ' <span style="color:var(--danger); font-weight:bold;">(⚠️ Atrasado)</span>';
+                    }
                 }
-                statusClass = isLate ? 'completed-late' : 'completed-on-time';
+                
+                prazoHtml = `<span style="font-size: 11px; margin-left: 8px; color: #7f8c8d;">📅 Até: ${p[2]}/${p[1]}/${p[0]}${warningText}</span>`;
             }
 
             list.innerHTML += `
@@ -640,7 +647,7 @@
             sub.sessionsLeft--;
             if (sub.sessionsLeft <= 0) {
                 sub.completed = true;
-                sub.completedAt = new Date().toISOString().split('T')[0]; // Registra a data exata da conclusão
+                sub.completedAt = new Date().toISOString().split('T')[0]; 
                 try { new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg').play(); } catch(e) {}
             }
             save();
@@ -671,7 +678,7 @@
             sub.sessionsLeft--;
             if(sub.sessionsLeft <= 0) {
                 sub.completed = true;
-                sub.completedAt = new Date().toISOString().split('T')[0]; // Registra a data exata da conclusão
+                sub.completedAt = new Date().toISOString().split('T')[0];
                 alert(`Meta finalizada! Todas as sessões desta tarefa foram concluídas.`);
             } else {
                 const sessoesFeitas = sub.totalSessions - sub.sessionsLeft;
