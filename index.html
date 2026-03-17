@@ -126,21 +126,13 @@
         .subject-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
         .active-focus { border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); transform: scale(1.02); }
         
-        .completed { opacity: 0.6; filter: blur(1.5px); transition: 0.3s; }
-        .completed:hover { filter: blur(0px); opacity: 1; }
-        
-        /* ESTILOS DE PRAZO */
-        .completed-on-time { border-left: 6px solid var(--success); background-color: rgba(46, 204, 113, 0.05); }
-        .completed-late { border-left: 6px solid var(--danger); background-color: rgba(231, 76, 60, 0.05); }
-        .active-late { border-left: 6px solid var(--danger); background-color: rgba(231, 76, 60, 0.08); }
-
+        /* NOVO ESTILO DE CONCLUÍDO COM DESFOQUE E BADGE */
+        .completed { opacity: 0.6; background: #d4edda22; filter: grayscale(100%) blur(1.5px); transition: 0.3s; }
+        .completed:hover { filter: grayscale(0%) blur(0px); opacity: 1; }
         .session-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 10px; }
 
         .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-        input, select { padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-color); font-size: 1rem; width: 100%; }
-        
-        .split-inputs { display: flex; gap: 10px; }
-        
+        input, select { padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-color); font-size: 1rem; }
         .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
         .btn-secondary { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 10px; width: 100%; }
         .actions { display: flex; align-items: center; gap: 15px; }
@@ -151,9 +143,14 @@
         button { touch-action: manipulation; }
 
         @media (max-width: 480px) {
-            header { flex-direction: column; align-items: flex-start; }
-            .header-controls { width: 100%; justify-content: space-between; }
-            .split-inputs { flex-direction: column; }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
@@ -221,15 +218,11 @@
             <option value="PMERJ">PMERJ (Reserva/Procedimentos)</option>
             <option value="Desenvolvimento">Dev (Web/Apps)</option>
             <option value="Idiomas">Idiomas</option>
+	    <option value="Livro">Livro</option>
             <option value="Geral">Geral</option>
         </select>
         <input type="text" id="subject-input" placeholder="O que vamos estudar?">
-        
-        <div class="split-inputs">
-            <input type="number" id="sessions-input" placeholder="Qtd. de sessões (Ex: 2)" min="1" value="1" title="Quantidade de sessões">
-            <input type="date" id="deadline-input" title="Prazo final (Opcional - Deixe em branco para cálculo automático)">
-        </div>
-
+        <input type="number" id="sessions-input" placeholder="Qtd. de sessões (Ex: 2)" min="1" value="1">
         <button onclick="addSubject()" class="btn-add">Adicionar à Lista</button>
     </section>
 
@@ -551,14 +544,7 @@
         const text = document.getElementById('subject-input').value;
         const category = document.getElementById('category-input').value;
         const sessions = parseInt(document.getElementById('sessions-input').value) || 1;
-        let deadline = document.getElementById('deadline-input').value;
         
-        if (!deadline && sessions > 0) {
-            let dataCalculada = new Date();
-            dataCalculada.setDate(dataCalculada.getDate() + sessions);
-            deadline = dataCalculada.toISOString().split('T')[0];
-        }
-
         if(text) {
             subjects.push({ 
                 id: Date.now(), 
@@ -566,13 +552,10 @@
                 category, 
                 completed: false, 
                 totalSessions: sessions, 
-                sessionsLeft: sessions,
-                deadline: deadline,
-                completedAt: null
+                sessionsLeft: sessions 
             });
             document.getElementById('subject-input').value = '';
             document.getElementById('sessions-input').value = '1';
-            document.getElementById('deadline-input').value = '';
             save();
         }
     }
@@ -581,10 +564,6 @@
         const list = document.getElementById('subject-list');
         list.innerHTML = '';
         
-        // Obter data de hoje no formato YYYY-MM-DD com compensação de fuso para não dar erro
-        const dt = new Date();
-        const todayISO = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-
         subjects.slice().reverse().forEach(s => {
             if (s.sessionsLeft === undefined) { s.sessionsLeft = 1; s.totalSessions = 1; }
 
@@ -593,42 +572,18 @@
             if(s.category === 'PMERJ') searchUrl += "+PMERJ+boletim+instrução";
             if(s.category === 'Finanças') searchUrl += "+mercado+financeiro+investimentos";
 
+            // Calcula quantas sessões já foram concluídas
             const sessoesFeitas = s.totalSessions - s.sessionsLeft;
-            
-            let prazoHtml = '';
-            let statusClass = '';
 
-            // Lógica de verificação de prazo
-            if (s.deadline) {
-                const p = s.deadline.split('-');
-                let warningText = '';
-                
-                if (s.completed) {
-                    // Verificação para tarefas já concluídas (Se concluiu depois da data)
-                    const compDate = s.completedAt || todayISO;
-                    statusClass = (compDate > s.deadline) ? 'completed-late' : 'completed-on-time';
-                } else {
-                    // Verificação para tarefas AINDA EM ABERTO (Se hoje é maior que a data limite)
-                    if (todayISO > s.deadline) {
-                        statusClass = 'active-late';
-                        warningText = ' <span style="color:var(--danger); font-weight:bold;">(⚠️ Atrasado)</span>';
-                    }
-                }
-                
-                prazoHtml = `<span style="font-size: 11px; margin-left: 8px; color: #7f8c8d;">📅 Até: ${p[2]}/${p[1]}/${p[0]}${warningText}</span>`;
-            }
-
+            // --- AQUI ESTÁ A MUDANÇA: ADICIONAMOS A INFORMAÇÃO DOS DIAS NO BADGE DE CONCLUÍDO ---
             list.innerHTML += `
-                <div class="subject-card ${s.completed ? 'completed' : ''} ${statusClass} ${activeId === s.id ? 'active-focus' : ''}">
+                <div class="subject-card ${s.completed ? 'completed' : ''} ${activeId === s.id ? 'active-focus' : ''}">
                     <div style="flex:1">
                         <small style="color:var(--primary); font-weight:bold; font-size:10px;">${s.category.toUpperCase()}</small>
-                        ${prazoHtml}
+                        ${!s.completed 
+                            ? `<span class="session-badge">Feitas: ${sessoesFeitas}/${s.totalSessions}</span>` 
+                            : `<span class="session-badge" style="background:var(--success)">Concluído (${sessoesFeitas}/${s.totalSessions})</span>`}
                         <br>
-                        <div style="margin: 6px 0;">
-                            ${!s.completed 
-                                ? `<span class="session-badge" style="margin-left:0;">Feitas: ${sessoesFeitas}/${s.totalSessions}</span>` 
-                                : `<span class="session-badge" style="margin-left:0; background:var(--success)">Concluído (${sessoesFeitas}/${s.totalSessions})</span>`}
-                        </div>
                         <strong>${s.text}</strong>
                     </div>
                     <div class="actions">
@@ -647,7 +602,6 @@
             sub.sessionsLeft--;
             if (sub.sessionsLeft <= 0) {
                 sub.completed = true;
-                sub.completedAt = new Date().toISOString().split('T')[0]; 
                 try { new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg').play(); } catch(e) {}
             }
             save();
@@ -678,7 +632,6 @@
             sub.sessionsLeft--;
             if(sub.sessionsLeft <= 0) {
                 sub.completed = true;
-                sub.completedAt = new Date().toISOString().split('T')[0];
                 alert(`Meta finalizada! Todas as sessões desta tarefa foram concluídas.`);
             } else {
                 const sessoesFeitas = sub.totalSessions - sub.sessionsLeft;
